@@ -1,6 +1,6 @@
 {
 	"name": "fparse",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Simple flat binary format built on a subset of the keratin schema format.",
 	"main": "./fparse",
 	"author": "Liam Doherty",
