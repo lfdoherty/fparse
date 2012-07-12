@@ -1,0 +1,14 @@
+{
+	"name": "fparse",
+	"version": "0.1.0",
+	"description": "Simple flat binary format built on a subset of the keratin schema format.",
+	"main": "./fparse",
+	"author": "Liam Doherty",
+	"dependencies" : { 
+		"keratin": "git://github.com/lfdoherty/keratin.git",
+		"underscorem": "git://github.com/lfdoherty/underscorem.git"
+	},
+	"engines": {
+		 "node" : "0.6"
+	}
+}
