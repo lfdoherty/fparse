@@ -107,3 +107,9 @@ exports.makeSingleReader = function(buf){
 	r.put(buf)
 	return r.s
 }
+
+
+exports.makeRs = rs.make
+
+
+

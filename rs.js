@@ -75,6 +75,9 @@ function makeReadState(){
 		put: function(buf){
 			cur = buf;
 			off = 0;
+		},
+		getOffset: function(){
+			return off
 		}
 	}
 }
