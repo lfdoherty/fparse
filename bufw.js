@@ -9,7 +9,7 @@ var sys = require('util'),
 function W(bufferSize, ws){
 	_.assertLength(arguments, 2);
 	_.assertInt(bufferSize)
-	
+	//_.assertFunction(ws.end)
 	_.assertObject(ws);
 
 	this.ws = ws;
