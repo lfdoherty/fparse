@@ -45,30 +45,33 @@ W.prototype.writeBuffer = function(nextSize, cb){
 		_.errout('cannot write buffer while delayed');
 	}
 	
+	if(this.position === 0) return
+
 	this.bytesSinceFlush += this.position;
-	
+
 	nextSize = 1;
-	nextSize = Math.min(this.bufferSize, Math.max(nextSize, this.bytesSinceFlush));
-	//console.log('nextSize: ' + this.bufferSize + ' ' + nextSize + ' ' + this.bytesSinceFlush)
-	if(this.position > 0){
-		var local = this;
-		var bb = this.b;
+	nextSize = Math.min(this.bufferSize, Math.max(nextSize, this.bytesSinceFlush))+1024;
+	//console.log('(' + this.position + ')nextSize: ' + this.bufferSize + ' ' + nextSize + ' ' + this.bytesSinceFlush)
+	//console.log(new Error().stack)
 
-		var writingBuffer = this.b.slice(0, this.position);
+	var local = this;
+	var bb = this.b;
 
-		this.b = new Buffer(nextSize);
-		this.position = 0;
-		
-		this.needWrite = false;
+	var writingBuffer = this.b.length > this.position ? this.b.slice(0, this.position) : this.b;
 
-		//console.log('writing buffer: ' + writingBuffer.length)
-		//console.log(new Error().stack)
-		var res = this.ws.write(writingBuffer);
-		if(!res && cb){
-			this.ws.once('drain', cb);
-		}else if(cb){
-			cb();
-		}
+	this.b = new Buffer(nextSize);
+
+	this.position = 0;
+	
+	this.needWrite = false;
+
+	//console.log('writing buffer: ' + writingBuffer.length)
+	//console.log(new Error().stack)
+	var res = this.ws.write(writingBuffer);
+	if(!res && cb){
+		this.ws.once('drain', cb);
+	}else if(cb){
+		cb();
 	}
 }
 
@@ -78,6 +81,7 @@ W.prototype.prepareFor = function(manyBytes){
 		if(this.delayed || this.lenPos >= 0 || this.countPos >= 0){
 			//console.log('need to write: ' + this.b.length + ' ' + this.position + ' ' + manyBytes)
 			//console.log(new Error().stack)
+			//console.log('expanding delayed: ' + this.position)
 			this.needWrite = true;
 			var nb = new Buffer((manyBytes+this.b.length)*2);
 			this.b.copy(nb, 0, 0);
@@ -113,8 +117,10 @@ W.prototype.putVarUint = function(i){
 		this.putByte(i);
 	}
 }
-W.prototype.putVarData = function(buf){
-	var len = buf.length;
+W.prototype.putVarData = function(buf, off, len){
+	off = off || 0
+	len = len !== undefined ? len : (buf.length-off);
+	//console.log('len: ' + len)
 	if(len >= 255){
 		this.prepareFor(len+5);
 		this.putByte(255);
@@ -123,7 +129,7 @@ W.prototype.putVarData = function(buf){
 		this.prepareFor(len+1);
 		this.putByte(len);
 	}
-	buf.copy(this.b, this.position)
+	buf.copy(this.b, this.position, off, len)
 	this.position += len;
 }
 
@@ -180,6 +186,19 @@ W.prototype.flush = function(cb){
 	this.bytesSinceFlush = 0;
 	return cc;
 }
+W.prototype.flushAndDie = function(cb){
+	var cc = this.position;
+	//this.writeBuffer(undefined, cb);
+	//this.bytesSinceFlush = 0;
+	//return cc;
+	//console.log('flushing ' + this.position)
+	var writingBuffer = this.b.length > this.position ? this.b.slice(0, this.position) : this.b;
+	this.position = undefined;
+	this.needWrite = false;
+	this.b = undefined
+	this.ws.write(writingBuffer);
+}
+
 W.prototype.close = function(cb, skipWrite){
 	if(!skipWrite){
 		this.writeBuffer();
@@ -244,6 +263,13 @@ W.prototype.resume = function(){
 W.prototype.cancel = function(){
 	this.position = this.delayPoint;
 	this.delayed = false;
+}
+
+W.prototype.getBackingBuffer = function(){
+	return this.b
+}
+W.prototype.getCurrentOffset = function(){
+	return this.position
 }
 
 exports.W = W;

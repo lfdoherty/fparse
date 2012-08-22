@@ -6,6 +6,7 @@ var ccc = console.log
 function makeReadState(){
 
 	var cur,off
+	var curEnd
 	
 	var s = {
 		readInt: function(){
@@ -14,13 +15,13 @@ function makeReadState(){
 			return v;
 		},
 		readString: function(len){
-			_.assertInt(len)
+			//_.assertInt(len)
 			var v = cur.toString('utf8', off, off+len);
 			off += len;
 			return v;
 		},
 		readData: function(len){
-			_.assertInt(len)
+			//_.assertInt(len)
 			var v = cur.slice(off, off+len)
 			off += len;
 			return v;
@@ -33,6 +34,7 @@ function makeReadState(){
 		},
 		readVarString: function(){
 			var len = s.readLength()
+			//console.log('reading string: ' + len)
 			return s.readString(len)
 		},
 		readReal: function(){
@@ -51,10 +53,9 @@ function makeReadState(){
 		},
 		readBoolean: function(){
 			var b = cur[off];
-
 			++off;
-			if(b !== 0 && b !== 1) console.log('b: ' + b)
-			_.assert(b === 0 || b === 1);
+			//if(b !== 0 && b !== 1) console.log('b: ' + b)
+			//_.assert(b === 0 || b === 1);
 			return b === 1;
 		},
 		readLength: function(){
@@ -70,11 +71,14 @@ function makeReadState(){
 	return {
 		s: s,
 		assertEmpty: function(){
-			_.assertEqual(off, cur.length);
+			_.assertEqual(off, curEnd);
 		},
-		put: function(buf){
+		put: function(buf, start, end){
+			if(start === undefined) start = 0
+			if(end === undefined) end = buf.length
 			cur = buf;
-			off = 0;
+			curEnd = end
+			off = start;
 		},
 		getOffset: function(){
 			return off

@@ -22,9 +22,7 @@ function readLong(buffer, offset){
 
 	var first = readInt(buffer, offset);
 	var second = readInt(buffer, offset+4);
-	
-	//require('sys').puts('r ' + first + ',' + second);
-	
+
 	var result = first + (second*2147483648);
 	
 	return result;
