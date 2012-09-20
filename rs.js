@@ -20,8 +20,9 @@ function makeReadState(){
 			off += len;
 			return v;
 		},
-		readData: function(len){
+		readData: function(){
 			//_.assertInt(len)
+			var len = s.readInt()
 			var v = cur.slice(off, off+len)
 			off += len;
 			return v;

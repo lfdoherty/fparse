@@ -150,11 +150,18 @@ W.prototype.putBufferDirectly = function(buf, off, len){
 	buf.copy(this.b, this.position, off, off+len);
 	this.position += len;
 }
-W.prototype.putData = function(buf, length){
-	if(length === undefined) length = buf.length;
+W.prototype.putData = function(buf, off, len){
+	/*if(length === undefined) length = buf.length;
 	this.prepareFor(length);
 	buf.copy(this.b, this.position, 0, length);
-	this.position += length;
+	this.position += length;*/
+	off = off || 0
+	len = len !== undefined ? len : (buf.length-off);
+	this.prepareFor(len);
+	//this.putInt(len);
+	buf.copy(this.b, this.position, off, len)
+	this.position += len;
+	//console.log('putData ' + new Error().stack)
 }
 W.prototype.putByte = function(v){
 	this.prepareFor(1);

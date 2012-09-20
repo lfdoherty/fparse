@@ -68,47 +68,52 @@ function makeFromSchema(schema){
 		
 		codes[objSchema.name] = objSchema.code
 		names[objSchema.code] = objSchema.name
-		var c = Object.keys(objSchema.propertiesByCode)
-		c = c.sort()
-		for(var j=0;j<c.length;++j){
-			var codeStr = c[j]
-			var p = objSchema.propertiesByCode[codeStr]
-			var type = p.type.primitive
-			var name = p.name
-			var code = p.code
+
+		if(objSchema.properties){
+		
+			var c = Object.keys(objSchema.propertiesByCode)
+			c = c.sort()
+			for(var j=0;j<c.length;++j){
+				var codeStr = c[j]
+				var p = objSchema.propertiesByCode[codeStr]
+				var type = p.type.primitive
+				var name = p.name
+				var code = p.code
 			
-			if(type === 'string'){
-				wstr += '\tw.putString(e.'+name+')\n'
-				rstr += '\te.'+name+' = r.readVarString()\n'
-				sstr += '\tr.readVarString()\n'
-			}else if(type === 'boolean'){
-				wstr += '\tw.putBoolean(e.'+name+')\n';
-				rstr += '\te.'+name+' = r.readBoolean()\n'
-				sstr += '\tr.readBoolean()\n'
-			}else if(type === 'byte'){
-				wstr += '\tw.putByte(e.'+name+')\n';
-				rstr += '\te.'+name+' = r.readByte()\n'
-				sstr += '\tr.readByte()\n'
-			}else if(type === 'long'){
-				wstr += '\tw.putLong(e.'+name+')\n';
-				rstr += '\te.'+name+' = r.readLong()\n'
-				sstr += '\tr.readLong()\n'
-			}else if(type === 'binary'){
-				wstr += '\tw.putVarData(e.'+name+')\n';
-				rstr += '\te.'+name+' = r.readVarData()\n'
-				sstr += '\tr.readVarData()\n'
-			}else if(type === 'real'){
-				wstr += '\tw.putReal(e.'+name+')\n';
-				rstr += '\te.'+name+' = r.readReal()\n'
-				sstr += '\tr.readReal()\n'
-			}else if(type === 'int'){
-				wstr += '\tw.putInt(e.'+name+')\n';
-				rstr += '\te.'+name+' = r.readInt()\n'
-				sstr += '\tr.readInt()\n'
-			}else{
-				_.errout('TODO: ' + JSON.stringify(p))
+				if(type === 'string'){
+					wstr += '\tw.putString(e.'+name+')\n'
+					rstr += '\te.'+name+' = r.readVarString()\n'
+					sstr += '\tr.readVarString()\n'
+				}else if(type === 'boolean'){
+					wstr += '\tw.putBoolean(e.'+name+')\n';
+					rstr += '\te.'+name+' = r.readBoolean()\n'
+					sstr += '\tr.readBoolean()\n'
+				}else if(type === 'byte'){
+					wstr += '\tw.putByte(e.'+name+')\n';
+					rstr += '\te.'+name+' = r.readByte()\n'
+					sstr += '\tr.readByte()\n'
+				}else if(type === 'long'){
+					wstr += '\tw.putLong(e.'+name+')\n';
+					rstr += '\te.'+name+' = r.readLong()\n'
+					sstr += '\tr.readLong()\n'
+				}else if(type === 'binary'){
+					wstr += '\tw.putBuffer(e.'+name+')\n';
+					rstr += '\te.'+name+' = r.readData()\n'
+					sstr += '\tr.readData()\n'
+				}else if(type === 'real'){
+					wstr += '\tw.putReal(e.'+name+')\n';
+					rstr += '\te.'+name+' = r.readReal()\n'
+					sstr += '\tr.readReal()\n'
+				}else if(type === 'int'){
+					wstr += '\tw.putInt(e.'+name+')\n';
+					rstr += '\te.'+name+' = r.readInt()\n'
+					sstr += '\tr.readInt()\n'
+				}else{
+					_.errout('TODO: ' + JSON.stringify(p))
+				}
 			}
 		}
+		
 		rstr += '\treturn e;\n'
 		rstr += '}\n'
 		
