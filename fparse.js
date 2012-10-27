@@ -128,7 +128,7 @@ function makeFromSchema(schema){
 	
 	var tempResult = require(tempFilePath)
 	
-	fs.unlinkSync(tempFilePath)
+	//fs.unlinkSync(tempFilePath)
 	
 	var handle = {
 		readersByCode: {},
@@ -201,6 +201,10 @@ exports.makeSingleReader = function(buf){
 	return r.s
 }
 
+exports.makeReusableSingleReader = function(){
+	var r = rs.make()
+	return r
+}
 
 exports.makeRs = rs.make
 
