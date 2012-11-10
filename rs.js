@@ -5,7 +5,8 @@ var ccc = console.log
 
 function makeReadState(){
 
-	var cur,off
+	var cur
+	var off
 	var curEnd
 	
 	var s = {
