@@ -223,6 +223,7 @@ exports.makeWriteStream = function(fp, ws){
 		_.assert(code > 0)
 		fs[key] = function(e){
 			w.putByte(code)
+			console.log('nonreplayable writing: ' + key)
 			writer(w, e)
 		}
 	})
@@ -248,6 +249,8 @@ exports.makeReplayableWriteStream = function(fp, ws){
 	var fs = {}
 	
 	var w = new replayableBufw.W(1024*1024, ws)
+
+	var hasWritten = false
 	
 	var frameCount = 0
 	var frameLengths = []
@@ -257,20 +260,30 @@ exports.makeReplayableWriteStream = function(fp, ws){
 		_.assert(code < 255)//TODO support more than 255 message types?
 		_.assert(code > 0)
 		fs[key] = function(e){
+			hasWritten = true
+			//console.log('writing: ' + key)
 			w.putByte(code)
 			writer(w, e)
 		}
 	})
+	
+	
 	var handle = {
 		beginFrame: function(){
 			w.startLength()
+			hasWritten = false
 		},
 		endFrame: function(){
 			var len = w.endLength()
 			_.assertInt(len)
-			frameLengths.push(len)
+			frameLengths.push(len+4)
+			_.assertInt(len+4)
+			//console.log('frame length: ' + (len+4))
 			w.flush()
-			++frameCount
+			++frameCount			
+		},
+		hasWritten: function(){
+			return hasWritten
 		},
 		fs: fs,
 		end: function(){
@@ -287,6 +300,7 @@ exports.makeReplayableWriteStream = function(fp, ws){
 				totalLength += frameLengths[i]
 			}
 			frameLengths = frameLengths.slice(manyFrames)
+			//console.log('discarding frames: ' + manyFrames + ', bytes: ' + totalLength)
 			w.discardReplayable(totalLength)
 		},
 		replay: function(){
@@ -317,6 +331,7 @@ exports.makeReadStream = function(fp, readers){
 				if(b.length < off+4){
 					break;
 				}
+				++frameCount
 				off += 4
 				continue
 			}
@@ -327,6 +342,8 @@ exports.makeReadStream = function(fp, readers){
 				//return
 				break
 			}
+			
+			//console.log('got frame: ' + waitingFor)
 			
 			++frameCount
 			

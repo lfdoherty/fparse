@@ -70,6 +70,7 @@ W.prototype.writeBuffer = function(nextSize, cb){
 
 	//console.log('writing buffer: ' + writingBuffer.length)
 	//console.log(new Error().stack)
+	
 	this.replayableBuffers.push(writingBuffer)
 	
 	var res = this.ws.write(writingBuffer);
@@ -83,22 +84,39 @@ W.prototype.writeBuffer = function(nextSize, cb){
 
 W.prototype.discardReplayable = function(manyBytes){
 	_.assert(this.replayableBuffers.length > 0)
-	while(manyBytes >= this.replayableBuffers[0].length - this.replayableOffset){
+	while(manyBytes > 0 && manyBytes >= this.replayableBuffers[0].length - this.replayableOffset){
 		_.assert(this.replayableBuffers.length > 0)
 		manyBytes -= this.replayableBuffers[0].length - this.replayableOffset
 		this.replayableOffset = 0
-		this.replayableBuffers.unshift()
+		//console.log('discarding buffer: ' + this.replayableBuffers[0].length + ' ' + manyBytes)
+		this.replayableBuffers.shift()
 	}
+	
+	if(manyBytes === 0) return
+	
 	_.assert(this.replayableBuffers.length > 0)
-	this.replayableOffset = manyBytes
+	//console.log('discarding partial: ' + manyBytes)
+	var remaining = 0
+	var local = this
+	this.replayableBuffers.forEach(function(b,index){
+		if(index === 0){
+			remaining += b.length - local.replayableOffset
+		}else{
+			remaining += b.length
+		}
+	})
+	//console.log('remaining: ' + remaining)
+	//console.log('buffers: ' + this.replayableBuffers.length)
+	this.replayableOffset += manyBytes
 }
 W.prototype.replay = function(){
 	
 	var local = this
-	replayableBuffers.forEach(function(b,index){
+	this.replayableBuffers.forEach(function(b,index){
 		if(index === 0 && local.replayableOffset > 0){
 			b = b.slice(local.replayableOffset)
 		}
+		//console.log('replaying buffer: ' + b.length)
 		local.ws.write(b)
 	})
 }
