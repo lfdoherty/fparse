@@ -214,9 +214,14 @@ exports.makeReusableSingleReader = function(){
 exports.makeRs = rs.make
 
 exports.makeWriteStream = function(fp, ws){
+	var inFrame = false
 	var fs = {}
 	var w = new bufw.W(1024*1024, ws)
 	Object.keys(fp.writers).forEach(function(key){
+		if(!inFrame){
+			w.startLength()
+			inFrame = true
+		}
 		var writer = fp.writers[key]
 		var code = fp.codes[key]
 		_.assert(code < 255)//TODO support more than 255 message types?
@@ -228,12 +233,13 @@ exports.makeWriteStream = function(fp, ws){
 		}
 	})
 	var handle = {
-		beginFrame: function(){
+		/*beginFrame: function(){
 			w.startLength()
-		},
+		},*/
 		endFrame: function(){
 			w.endLength()
 			w.flush()
+			inFrame = false
 		},
 		fs: fs,
 		end: function(){
@@ -251,6 +257,10 @@ exports.makeReplayableWriteStream = function(fp, ws){
 	var w = new replayableBufw.W(1024*1024, ws)
 
 	var hasWritten = false
+
+	var inFrame = false
+	
+	var ackFramePushedLast = false
 	
 	var frameCount = 0
 	var frameLengths = []
@@ -260,6 +270,9 @@ exports.makeReplayableWriteStream = function(fp, ws){
 		_.assert(code < 255)//TODO support more than 255 message types?
 		_.assert(code > 0)
 		fs[key] = function(e){
+			if(!inFrame){
+				beginFrame()
+			}
 			hasWritten = true
 			//console.log('writing: ' + key)
 			w.putByte(code)
@@ -267,20 +280,55 @@ exports.makeReplayableWriteStream = function(fp, ws){
 		}
 	})
 	
-	
-	var handle = {
-		beginFrame: function(){
+	function beginFrame(){
+		if(!inFrame){
+			w.putByte(1)
 			w.startLength()
 			hasWritten = false
+			inFrame = true
+		}
+	}
+	
+	var handle = {
+		writeAck: function(v){
+			if(inFrame){
+				handle.endFrame()
+			}
+			//console.log('writing ack: ' + v)
+			w.putByte(2)
+			w.putInt(v)
+			if(frameLengths.length === 0){
+				ackFramePushedLast = true
+				frameLengths.push(5)
+			}else{
+				frameLengths[frameLengths.length-1] += 5
+			}
+			w.flush()
+		},
+		forceBeginFrame: function(){
+			beginFrame()
+		},
+		shouldWriteFrame: function(){
+			return inFrame && w.currentLength() > 0
 		},
 		endFrame: function(){
+			if(!inFrame) _.errout('cannot end what was never begun')
+			//console.log('ending frame')
 			var len = w.endLength()
 			_.assertInt(len)
-			frameLengths.push(len+4)
-			_.assertInt(len+4)
-			//console.log('frame length: ' + (len+4))
+			_.assert(len > 0)
+			if(ackFramePushedLast){
+				_.assertLength(frameLengths, 1)
+				frameLengths[0] += len+5
+				ackFramePushedLast = false
+			}else{
+				frameLengths.push(len+5)
+			}
+			//console.log('frame length: ' + (len+5))
 			w.flush()
-			++frameCount			
+			++frameCount
+			inFrame = false
+			return true
 		},
 		hasWritten: function(){
 			return hasWritten
@@ -295,12 +343,16 @@ exports.makeReplayableWriteStream = function(fp, ws){
 		},
 		discardReplayableFrames: function(manyFrames){
 			_.assert(manyFrames > 0)
+			_.assert(manyFrames <= frameLengths.length)
+			
 			var totalLength = 0
 			for(var i=0;i<manyFrames;++i){
+				_.assert(frameLengths[i] > 5)
 				totalLength += frameLengths[i]
 			}
 			frameLengths = frameLengths.slice(manyFrames)
 			//console.log('discarding frames: ' + manyFrames + ', bytes: ' + totalLength)
+			//console.log('frameLengths: ' + JSON.stringify(frameLengths))
 			w.discardReplayable(totalLength)
 		},
 		replay: function(){
@@ -310,7 +362,9 @@ exports.makeReplayableWriteStream = function(fp, ws){
 	return handle
 }
 
-exports.makeReadStream = function(fp, readers){
+exports.makeReadStream = function(fp, readers, ackFunction){
+	_.assertFunction(ackFunction)
+	
 	var r = rs.make()
 	var b
 	var frameCount = 0
@@ -325,17 +379,34 @@ exports.makeReadStream = function(fp, readers){
 		
 		while(true){
 
-			var waitingFor = bin.readInt(b, off)
+			if(b.length < off+1) break;
+			
+			var msgType = b[off]//bin.readByte(b, off)
+			if(msgType === 2){
+				//console.log('got ack message')
+				if(b.length < off+5){
+					break;
+				}
+				var ackValue = bin.readInt(b, off+1)
+				off += 5
+				ackFunction(ackValue)
+				continue
+			}else{
+				//console.log('got data message')
+				_.assertEqual(msgType, 1)
+			}
+			
+			var waitingFor = bin.readInt(b, off+1)
 			if(waitingFor === 0){
 				//console.log('zero ' + off)
-				if(b.length < off+4){
+				if(b.length < off+5){
 					break;
 				}
 				++frameCount
-				off += 4
+				off += 5
 				continue
 			}
-			var end = 4+waitingFor+off
+			var end = 5+waitingFor+off
 			//console.log('waitingFor: ' + waitingFor + ' ' + end)
 			if(end > b.length){
 				//console.log(end + ' > ' + b.length + ' ' + waitingFor)
@@ -347,7 +418,7 @@ exports.makeReadStream = function(fp, readers){
 			
 			++frameCount
 			
-			off+=4
+			off+=5
 			
 			//_.assert(off < end)
 			

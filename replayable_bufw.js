@@ -32,6 +32,14 @@ function W(bufferSize, ws){
 	this.lenPos = -1;
 	
 	var local = this;
+	
+	setInterval(function(){
+		var reps = []
+		local.replayableBuffers.forEach(function(rb){
+			reps.push(rb.length)
+		})
+		console.log(JSON.stringify({b: local.b.length, replayables: reps, replayableOffset: local.replayableOffset},null,2))
+	},10000)
 }
 
 
@@ -88,14 +96,14 @@ W.prototype.discardReplayable = function(manyBytes){
 		_.assert(this.replayableBuffers.length > 0)
 		manyBytes -= this.replayableBuffers[0].length - this.replayableOffset
 		this.replayableOffset = 0
-		//console.log('discarding buffer: ' + this.replayableBuffers[0].length + ' ' + manyBytes)
+		console.log('discarding buffer: ' + this.replayableBuffers[0].length + ' ' + manyBytes)
 		this.replayableBuffers.shift()
 	}
 	
 	if(manyBytes === 0) return
 	
 	_.assert(this.replayableBuffers.length > 0)
-	//console.log('discarding partial: ' + manyBytes)
+	console.log('discarding partial: ' + manyBytes)
 	var remaining = 0
 	var local = this
 	this.replayableBuffers.forEach(function(b,index){
@@ -105,8 +113,12 @@ W.prototype.discardReplayable = function(manyBytes){
 			remaining += b.length
 		}
 	})
-	//console.log('remaining: ' + remaining)
-	//console.log('buffers: ' + this.replayableBuffers.length)
+	console.log('remaining: ' + remaining)
+	var reps = []
+	local.replayableBuffers.forEach(function(rb){
+		reps.push(rb.length)
+	})
+	console.log('buffers: ' + JSON.stringify(reps))
 	this.replayableOffset += manyBytes
 }
 W.prototype.replay = function(){
@@ -292,6 +304,11 @@ W.prototype.startLength = function(){
 	this.lengthStack[this.lenPos] = this.position;
 
 	this.position += 4;
+}
+W.prototype.currentLength = function(){
+	var writePos = this.lengthStack[this.lenPos];
+	var len = (this.position - writePos) - 4;
+	return len
 }
 W.prototype.endLength = function(){
 
