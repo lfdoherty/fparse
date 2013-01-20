@@ -96,14 +96,14 @@ W.prototype.discardReplayable = function(manyBytes){
 		_.assert(this.replayableBuffers.length > 0)
 		manyBytes -= this.replayableBuffers[0].length - this.replayableOffset
 		this.replayableOffset = 0
-		console.log('discarding buffer: ' + this.replayableBuffers[0].length + ' ' + manyBytes)
+		//console.log('discarding buffer: ' + this.replayableBuffers[0].length + ' ' + manyBytes)
 		this.replayableBuffers.shift()
 	}
 	
 	if(manyBytes === 0) return
 	
 	_.assert(this.replayableBuffers.length > 0)
-	console.log('discarding partial: ' + manyBytes)
+	//console.log('discarding partial: ' + manyBytes)
 	var remaining = 0
 	var local = this
 	this.replayableBuffers.forEach(function(b,index){
@@ -113,12 +113,12 @@ W.prototype.discardReplayable = function(manyBytes){
 			remaining += b.length
 		}
 	})
-	console.log('remaining: ' + remaining)
+	/*console.log('remaining: ' + remaining)
 	var reps = []
 	local.replayableBuffers.forEach(function(rb){
 		reps.push(rb.length)
 	})
-	console.log('buffers: ' + JSON.stringify(reps))
+	console.log('buffers: ' + JSON.stringify(reps))*/
 	this.replayableOffset += manyBytes
 }
 W.prototype.replay = function(){
