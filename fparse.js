@@ -277,6 +277,10 @@ exports.makeReplayableWriteStream = function(fp, ws){
 			//console.log('writing: ' + key)
 			w.putByte(code)
 			writer(w, e)
+			
+			/*if(w.currentLength() > 10*1024*1024){
+				handle.endFrame()
+			}*/
 		}
 	})
 	
@@ -368,20 +372,45 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 	var r = rs.make()
 	var b
 	var frameCount = 0
+
+	var amountWaitingFor
+	var bufs
+	var gotSoFar
+	
 	function put(buf){
 		if(b === undefined){
 			b = buf
+			gotSoFar = buf.length
 		}else{
-			b = Buffer.concat([b, buf])
+			gotSoFar += buf.length
+			if(amountWaitingFor > gotSoFar){
+				//console.log('still waiting: ' + amountWaitingFor + ' ' + buf.length + ' ' + gotSoFar)
+				if(bufs){
+					bufs.push(buf)
+				}else{
+					bufs = [b, buf]
+				}
+				return
+			}
+			//console.log(off + ' ' + b.length + ' ' + buf.length)
+			if(bufs){
+				bufs.push(buf)
+				b = Buffer.concat(bufs)
+				bufs = undefined
+			}else{
+				b = Buffer.concat([b, buf])
+			}
 		}
 		
 		var off = 0
 		
 		while(true){
 
+			amountWaitingFor = 0
+			
 			if(b.length < off+1) break;
 			
-			var msgType = b[off]//bin.readByte(b, off)
+			var msgType = b[off]
 			if(msgType === 2){
 				//console.log('got ack message')
 				if(b.length < off+5){
@@ -411,6 +440,7 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 			if(end > b.length){
 				//console.log(end + ' > ' + b.length + ' ' + waitingFor)
 				//return
+				amountWaitingFor = waitingFor+5
 				break
 			}
 			
@@ -440,15 +470,16 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 
 			if(b.length === end){
 				b = undefined
+				gotSoFar = 0
 				return
 			}
 			
 			//console.log('moving on: ' + end + ' ' + r.getOffset() + ' ' + off)
-			//b = b.slice(end)
 			off = end
 		}
 		b = b.slice(off)
-		off = 0
+		//console.log('set gotSoFar: ' + b.length)
+		gotSoFar = b.length
 	}
 	
 	put.getFrameCount = function(){
