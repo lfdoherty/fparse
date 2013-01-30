@@ -38,7 +38,7 @@ function W(bufferSize, ws){
 		local.replayableBuffers.forEach(function(rb){
 			reps.push(rb.length)
 		})
-		console.log(JSON.stringify({b: local.b.length, replayables: reps, replayableOffset: local.replayableOffset},null,2))
+		//console.log(JSON.stringify({b: local.b.length, replayables: reps, replayableOffset: local.replayableOffset},null,2))
 	},10000)
 }
 
