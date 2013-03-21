@@ -131,7 +131,7 @@ function makeFromSchema(schema){
 	
 	var tempResult = require(tempFilePath)
 	
-	//fs.unlinkSync(tempFilePath)
+	fs.unlinkSync(tempFilePath)
 	
 	var handle = {
 		readersByCode: {},

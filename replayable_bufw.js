@@ -1,3 +1,4 @@
+"use strict";
 
 var _ = require('underscorem');
 var sys = require('util'),
@@ -33,13 +34,13 @@ function W(bufferSize, ws){
 	
 	var local = this;
 	
-	setInterval(function(){
+	/*setInterval(function(){
 		var reps = []
 		local.replayableBuffers.forEach(function(rb){
 			reps.push(rb.length)
 		})
 		//console.log(JSON.stringify({b: local.b.length, replayables: reps, replayableOffset: local.replayableOffset},null,2))
-	},10000)
+	},10000)*/
 }
 
 
