@@ -86,31 +86,31 @@ function makeFromSchema(schema){
 				if(type === 'string'){
 					wstr += '\tw.putString(e.'+name+')\n'
 					rstr += '\te.'+name+' = r.readVarString()\n'
-					sstr += '\tr.readVarString()\n'
+					sstr += '\tr.skipVarString()\n'
 				}else if(type === 'boolean'){
 					wstr += '\tw.putBoolean(e.'+name+')\n';
 					rstr += '\te.'+name+' = r.readBoolean()\n'
-					sstr += '\tr.readBoolean()\n'
+					sstr += '\tr.skipBoolean()\n'
 				}else if(type === 'byte'){
 					wstr += '\tw.putByte(e.'+name+')\n';
 					rstr += '\te.'+name+' = r.readByte()\n'
-					sstr += '\tr.readByte()\n'
+					sstr += '\tr.skipByte()\n'
 				}else if(type === 'long'){
 					wstr += '\tw.putLong(e.'+name+')\n';
 					rstr += '\te.'+name+' = r.readLong()\n'
-					sstr += '\tr.readLong()\n'
+					sstr += '\tr.skipLong()\n'
 				}else if(type === 'binary'){
 					wstr += '\tw.putBuffer(e.'+name+')\n';
 					rstr += '\te.'+name+' = r.readData()\n'
-					sstr += '\tr.readData()\n'
+					sstr += '\tr.skipData()\n'
 				}else if(type === 'real'){
 					wstr += '\tw.putReal(e.'+name+')\n';
 					rstr += '\te.'+name+' = r.readReal()\n'
-					sstr += '\tr.readReal()\n'
+					sstr += '\tr.skipReal()\n'
 				}else if(type === 'int'){
 					wstr += '\tw.putInt(e.'+name+')\n';
 					rstr += '\te.'+name+' = r.readInt()\n'
-					sstr += '\tr.readInt()\n'
+					sstr += '\tr.skipInt()\n'
 				}else{
 					_.errout('TODO: ' + JSON.stringify(p))
 				}
@@ -384,7 +384,6 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 		}else{
 			gotSoFar += buf.length
 			if(amountWaitingFor > gotSoFar){
-				//console.log('still waiting: ' + amountWaitingFor + ' ' + buf.length + ' ' + gotSoFar)
 				if(bufs){
 					bufs.push(buf)
 				}else{
@@ -392,7 +391,6 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 				}
 				return
 			}
-			//console.log(off + ' ' + b.length + ' ' + buf.length)
 			if(bufs){
 				bufs.push(buf)
 				b = Buffer.concat(bufs)
@@ -412,7 +410,6 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 			
 			var msgType = b[off]
 			if(msgType === 2){
-				//console.log('got ack message')
 				if(b.length < off+5){
 					break;
 				}
@@ -421,13 +418,11 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 				ackFunction(ackValue)
 				continue
 			}else{
-				//console.log('got data message')
 				_.assertEqual(msgType, 1)
 			}
 			
 			var waitingFor = bin.readInt(b, off+1)
 			if(waitingFor === 0){
-				//console.log('zero ' + off)
 				if(b.length < off+5){
 					break;
 				}
@@ -436,49 +431,33 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 				continue
 			}
 			var end = 5+waitingFor+off
-			//console.log('waitingFor: ' + waitingFor + ' ' + end)
 			if(end > b.length){
-				//console.log(end + ' > ' + b.length + ' ' + waitingFor)
-				//return
 				amountWaitingFor = waitingFor+5
 				break
 			}
 			
-			//console.log('got frame: ' + waitingFor)
-			
 			++frameCount
-			
 			off+=5
-			
-			//_.assert(off < end)
-			
-			//console.log(off + ' - ' + end)
 
 			r.put(b, off, end)
 			
 			while(r.getOffset() < end){
 			
 				var code = r.s.readByte()
-				//console.log(r.getOffset() + ' ' + b.length + ' code: ' + code)
 				_.assert(code > 0)
 				var name = fp.names[code]
 				var e = fp.readersByCode[code](r.s)
 				readers[name](e)
 			}
-			
-			//_.assertEqual(r.getOffset(), end)
 
 			if(b.length === end){
 				b = undefined
 				gotSoFar = 0
 				return
-			}
-			
-			//console.log('moving on: ' + end + ' ' + r.getOffset() + ' ' + off)
+			}			
 			off = end
 		}
 		b = b.slice(off)
-		//console.log('set gotSoFar: ' + b.length)
 		gotSoFar = b.length
 	}
 	

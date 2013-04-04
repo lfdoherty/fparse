@@ -15,6 +15,9 @@ function makeReadState(){
 			off+=4;
 			return v;
 		},
+		skipInt: function(){
+			off += 4
+		},
 		readString: function(len){
 			//_.assertInt(len)
 			var v = cur.toString('utf8', off, off+len);
@@ -28,6 +31,10 @@ function makeReadState(){
 			off += len;
 			return v;
 		},
+		skipData: function(){
+			var len = s.readInt()
+			off += len
+		},
 		readVarData: function(){
 			var len = s.readLength()
 			var v = cur.slice(off, off+len)
@@ -36,22 +43,35 @@ function makeReadState(){
 		},
 		readVarString: function(){
 			var len = s.readLength()
-			//console.log('reading string: ' + len)
 			return s.readString(len)
+		},
+		skipVarString: function(){
+			var len = s.readLength()
+			off+=len
 		},
 		readReal: function(){
 			var len = s.readLength()
 			return Number(s.readString(len))
+		},
+		skipReal: function(){
+			var len = s.readLength()
+			off += len
 		},
 		readByte: function(){
 			var v = cur[off];
 			++off
 			return v;
 		},
+		skipByte: function(){
+			++off
+		},
 		readLong: function(){
 			var v = bin.readLong(cur, off);
 			off+=8;
 			return v;
+		},
+		skipLong: function(){
+			off+=8
 		},
 		readBoolean: function(){
 			var b = cur[off];
@@ -59,6 +79,9 @@ function makeReadState(){
 			//if(b !== 0 && b !== 1) console.log('b: ' + b)
 			//_.assert(b === 0 || b === 1);
 			return b === 1;
+		},
+		skipBoolean: function(){
+			++off
 		},
 		readLength: function(){
 			var count = s.readByte();
