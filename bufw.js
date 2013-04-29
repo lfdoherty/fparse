@@ -247,6 +247,11 @@ W.prototype.startLength = function(){
 
 	this.position += 4;
 }
+W.prototype.currentLength = function(){
+	var writePos = this.lengthStack[this.lenPos];
+	var len = (this.position - writePos) - 4;
+	return len
+}
 W.prototype.endLength = function(){
 
 	var writePos = this.lengthStack[this.lenPos];

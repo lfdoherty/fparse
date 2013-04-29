@@ -218,17 +218,20 @@ exports.makeWriteStream = function(fp, ws){
 	var fs = {}
 	var w = new bufw.W(1024*1024, ws)
 	Object.keys(fp.writers).forEach(function(key){
-		if(!inFrame){
-			w.startLength()
-			inFrame = true
-		}
+		
+		//console.log('writing: ' + key)
 		var writer = fp.writers[key]
 		var code = fp.codes[key]
 		_.assert(code < 255)//TODO support more than 255 message types?
 		_.assert(code > 0)
 		fs[key] = function(e){
+			if(!inFrame){
+				//console.log('starting frame')
+				w.startLength()
+				inFrame = true
+			}
 			w.putByte(code)
-			console.log('nonreplayable writing: ' + key)
+			//console.log('nonreplayable writing: ' + key)
 			writer(w, e)
 		}
 	})
@@ -236,7 +239,19 @@ exports.makeWriteStream = function(fp, ws){
 		/*beginFrame: function(){
 			w.startLength()
 		},*/
+		shouldWriteFrame: function(){
+			return inFrame && w.currentLength() > 0
+		},
+		forceBeginFrame: function(){
+			//beginFrame()
+			if(!inFrame){
+				//console.log('starting frame')
+				w.startLength()
+				inFrame = true
+			}
+		},
 		endFrame: function(){
+			//console.log('ended frame*')
 			w.endLength()
 			w.flush()
 			inFrame = false
@@ -366,8 +381,8 @@ exports.makeReplayableWriteStream = function(fp, ws){
 	return handle
 }
 
-exports.makeReadStream = function(fp, readers, ackFunction){
-	_.assertFunction(ackFunction)
+exports.makeReadStream = function(fp, readers){
+	//_.assertFunction(ackFunction)
 	
 	var r = rs.make()
 	var b
@@ -406,9 +421,9 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 
 			amountWaitingFor = 0
 			
-			if(b.length < off+1) break;
+			if(b.length < off) break;
 			
-			var msgType = b[off]
+			/*var msgType = b[off]
 			if(msgType === 2){
 				if(b.length < off+5){
 					break;
@@ -419,25 +434,28 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 				continue
 			}else{
 				_.assertEqual(msgType, 1)
-			}
+			}*/
 			
-			var waitingFor = bin.readInt(b, off+1)
+			var waitingFor = bin.readInt(b, off)
+			//console.log('waiting for: ' + waitingFor)
 			if(waitingFor === 0){
-				if(b.length < off+5){
+				if(b.length < off+4){
 					break;
 				}
 				++frameCount
-				off += 5
+				off += 4
 				continue
 			}
-			var end = 5+waitingFor+off
+			var end = 4+waitingFor+off
 			if(end > b.length){
-				amountWaitingFor = waitingFor+5
+				amountWaitingFor = waitingFor+4
 				break
 			}
+
+			//console.log('reading frame')
 			
 			++frameCount
-			off+=5
+			off+=4
 
 			r.put(b, off, end)
 			
@@ -447,6 +465,7 @@ exports.makeReadStream = function(fp, readers, ackFunction){
 				_.assert(code > 0)
 				var name = fp.names[code]
 				var e = fp.readersByCode[code](r.s)
+				//console.log('reading: ' + code)
 				readers[name](e)
 			}
 
