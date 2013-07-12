@@ -23,8 +23,6 @@ function make(schemaStr){
 	makeFromSchema(schema);
 }
 
-//var count = 0
-
 function makeWriter(name, fw){
 	return function(w,e){
 		try{	
@@ -38,9 +36,7 @@ function makeWriter(name, fw){
 function makeFromSchema(schema){	
 	
 	var readers = {}
-	//var readersByCode = {}
 	var writers = {}
-	//var writersByCode = {}
 	var codes = {}
 	var names = {}
 
@@ -63,10 +59,6 @@ function makeFromSchema(schema){
 		rstr += 'readers.' + objSchema.name + ' = function(r){\n'
 		sstr += 'skippers.' + objSchema.name + ' = function(r){\n'
 
-		//wstr += '\tif(w === undefined) throw new Error(\'parameter 0,  "w" is undefined\')\n'
-		//wstr += '\tif(e === undefined) throw new Error(\'parameter 1,  "e" is undefined\')\n'
-
-		//rstr += '\tif(r === undefined) throw new Error(\'parameter 0,  "r" is undefined\')\n'//var e = {};'
 		rstr += '\tvar e = {}\n'
 		
 		codes[objSchema.name] = objSchema.code
@@ -190,10 +182,7 @@ exports.makeSingleBufferWriter = function(bufSize){
 	var w = new bufw.W(bufSize, ws)
 	w.delay()
 	w.finish = function(){
-		//w.resume()
 		w.flushAndDie()	
-		//_.assertBuffer(buf)
-		//if(buf === undefined) buf = new Buffer(0)
 		_.assertBuffer(buf)
 		return buf
 	}
@@ -226,32 +215,24 @@ exports.makeWriteStream = function(fp, ws){
 		_.assert(code > 0)
 		fs[key] = function(e){
 			if(!inFrame){
-				//console.log('starting frame')
 				w.startLength()
 				inFrame = true
 			}
 			w.putByte(code)
-			//console.log('nonreplayable writing: ' + key)
 			writer(w, e)
 		}
 	})
 	var handle = {
-		/*beginFrame: function(){
-			w.startLength()
-		},*/
 		shouldWriteFrame: function(){
 			return inFrame && w.currentLength() > 0
 		},
 		forceBeginFrame: function(){
-			//beginFrame()
 			if(!inFrame){
-				//console.log('starting frame')
 				w.startLength()
 				inFrame = true
 			}
 		},
 		endFrame: function(){
-			//console.log('ended frame*')
 			w.endLength()
 			w.flush()
 			inFrame = false
@@ -289,13 +270,8 @@ exports.makeReplayableWriteStream = function(fp, ws){
 				beginFrame()
 			}
 			hasWritten = true
-			//console.log('writing: ' + key)
 			w.putByte(code)
 			writer(w, e)
-			
-			/*if(w.currentLength() > 10*1024*1024){
-				handle.endFrame()
-			}*/
 		}
 	})
 	
@@ -313,7 +289,6 @@ exports.makeReplayableWriteStream = function(fp, ws){
 			if(inFrame){
 				handle.endFrame()
 			}
-			//console.log('writing ack: ' + v)
 			w.putByte(2)
 			w.putInt(v)
 			if(frameLengths.length === 0){
@@ -332,7 +307,6 @@ exports.makeReplayableWriteStream = function(fp, ws){
 		},
 		endFrame: function(){
 			if(!inFrame) _.errout('cannot end what was never begun')
-			//console.log('ending frame')
 			var len = w.endLength()
 			_.assertInt(len)
 			_.assert(len > 0)
@@ -343,7 +317,6 @@ exports.makeReplayableWriteStream = function(fp, ws){
 			}else{
 				frameLengths.push(len+5)
 			}
-			//console.log('frame length: ' + (len+5))
 			w.flush()
 			++frameCount
 			inFrame = false
@@ -370,8 +343,6 @@ exports.makeReplayableWriteStream = function(fp, ws){
 				totalLength += frameLengths[i]
 			}
 			frameLengths = frameLengths.slice(manyFrames)
-			//console.log('discarding frames: ' + manyFrames + ', bytes: ' + totalLength)
-			//console.log('frameLengths: ' + JSON.stringify(frameLengths))
 			w.discardReplayable(totalLength)
 		},
 		replay: function(){
@@ -382,7 +353,6 @@ exports.makeReplayableWriteStream = function(fp, ws){
 }
 
 exports.makeReadStream = function(fp, readers){
-	//_.assertFunction(ackFunction)
 	
 	var r = rs.make()
 	var b
@@ -422,22 +392,8 @@ exports.makeReadStream = function(fp, readers){
 			amountWaitingFor = 0
 			
 			if(b.length < off) break;
-			
-			/*var msgType = b[off]
-			if(msgType === 2){
-				if(b.length < off+5){
-					break;
-				}
-				var ackValue = bin.readInt(b, off+1)
-				off += 5
-				ackFunction(ackValue)
-				continue
-			}else{
-				_.assertEqual(msgType, 1)
-			}*/
-			
+	
 			var waitingFor = bin.readInt(b, off)
-			//console.log('waiting for: ' + waitingFor)
 			if(waitingFor === 0){
 				if(b.length < off+4){
 					break;
@@ -452,8 +408,6 @@ exports.makeReadStream = function(fp, readers){
 				break
 			}
 
-			//console.log('reading frame')
-			
 			++frameCount
 			off+=4
 
@@ -465,7 +419,6 @@ exports.makeReadStream = function(fp, readers){
 				_.assert(code > 0)
 				var name = fp.names[code]
 				var e = fp.readersByCode[code](r.s)
-				//console.log('reading: ' + code)
 				readers[name](e)
 			}
 
