@@ -103,6 +103,10 @@ function makeFromSchema(schema){
 					wstr += '\tw.putInt(e.'+name+')\n';
 					rstr += '\te.'+name+' = r.readInt()\n'
 					sstr += '\tr.skipInt()\n'
+				}else if(type === 'uuid'){
+					wstr += '\tw.putUuid(e.'+name+')\n';
+					rstr += '\te.'+name+' = r.readUuid()\n'
+					sstr += '\tr.skipUuid()\n'
 				}else{
 					_.errout('TODO: ' + JSON.stringify(p))
 				}

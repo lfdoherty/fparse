@@ -238,6 +238,14 @@ W.prototype.putInt = function(v){
 	bin.writeInt(this.b, this.position, v);
 	this.position += 4;
 }
+W.prototype.putUuid = function(buf){
+	_.assertBuffer(buf)
+	if(buf.length !== 16) throw new Error('invalid uuid buffer: ' + buf + ', length is ' + buf.length)
+	this.prepareFor(16);
+	//bin.writeInt(this.b, this.position, v);
+	buf.copy(this.b, this.position, 0, 16);
+	this.position += 16;
+}
 W.prototype.putLong = function(v){
 	this.prepareFor(8);
 	bin.writeLong(this.b, this.position, v);

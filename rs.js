@@ -1,5 +1,6 @@
 var _ = require('underscorem');
 var bin = require('./bin');
+var seedrandom = require('seedrandom')
 
 var ccc = console.log
 
@@ -48,6 +49,18 @@ function makeReadState(){
 		skipVarString: function(){
 			var len = s.readLength()
 			off+=len
+		},
+		readUuid: function(){
+			var v = cur.slice(off, off+16)
+			off += 16;
+			
+			v.toString = function(){
+				//throw new Error('should not auto-convert uuid buffer to string')
+				var str = seedrandom.uuidBufferToString(this)
+				//console.log('converted uuid: ' + str)
+				return str
+			}
+			return v;
 		},
 		readReal: function(){
 			var len = s.readLength()

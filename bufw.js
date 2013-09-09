@@ -5,6 +5,7 @@ var sys = require('util'),
 	bin = require('./bin'),
 	fs = require('fs');
 
+var seedrandom = require('seedrandom')
 
 function W(bufferSize, ws){
 	_.assertLength(arguments, 2);
@@ -173,6 +174,16 @@ W.prototype.putBoolean = function(v){
 	//bin.writeBoolean(this.b, this.position, v);
 	this.b[this.position] = v ? 1 : 0;
 	++this.position
+}
+W.prototype.putUuid = function(buf){
+	if(typeof(buf) === 'string'){
+		buf = seedrandom.uuidStringToBuffer(buf)
+	}
+	if(buf.length !== 16) throw new Error('invalid uuid buffer: ' + buf + ', length is ' + buf.length)
+	this.prepareFor(16);
+	//bin.writeInt(this.b, this.position, v);
+	buf.copy(this.b, this.position, 0, 16);
+	this.position += 16;
 }
 W.prototype.putInt = function(v){
 	this.prepareFor(4);
