@@ -51,16 +51,19 @@ function makeReadState(){
 			off+=len
 		},
 		readUuid: function(){
-			var v = cur.slice(off, off+16)
+			//var v = cur.slice(off, off+16)
+			//var uuid = seedrandom.wrapUuidBuffer(cur, off)
+			var uuid = seedrandom.uuidBufferSliceToString(cur, off)
 			off += 16;
+			return uuid
 			
-			v.toString = function(){
+			/*v.toString = function(){
 				//throw new Error('should not auto-convert uuid buffer to string')
 				var str = seedrandom.uuidBufferToString(this)
 				//console.log('converted uuid: ' + str)
 				return str
 			}
-			return v;
+			return v;*/
 		},
 		readReal: function(){
 			var len = s.readLength()

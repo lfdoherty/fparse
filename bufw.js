@@ -175,14 +175,9 @@ W.prototype.putBoolean = function(v){
 	this.b[this.position] = v ? 1 : 0;
 	++this.position
 }
-W.prototype.putUuid = function(buf){
-	if(typeof(buf) === 'string'){
-		buf = seedrandom.uuidStringToBuffer(buf)
-	}
-	if(buf.length !== 16) throw new Error('invalid uuid buffer: ' + buf + ', length is ' + buf.length)
+W.prototype.putUuid = function(uuid){
 	this.prepareFor(16);
-	//bin.writeInt(this.b, this.position, v);
-	buf.copy(this.b, this.position, 0, 16);
+	seedrandom.writeUuidToBuffer(uuid,this.b,this.position)
 	this.position += 16;
 }
 W.prototype.putInt = function(v){
