@@ -176,6 +176,7 @@ W.prototype.putBoolean = function(v){
 	++this.position
 }
 W.prototype.putUuid = function(uuid){
+	_.assertLength(uuid, 8)
 	this.prepareFor(16);
 	seedrandom.writeUuidToBuffer(uuid,this.b,this.position)
 	this.position += 16;

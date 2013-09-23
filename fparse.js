@@ -18,6 +18,8 @@ var bufw = require('./bufw')
 
 var replayableBufw = require('./replayable_bufw')
 
+exports.module = module
+
 function make(schemaStr){
 	var schema = keratin.parse(schemaStr, []);
 	makeFromSchema(schema);
@@ -33,10 +35,8 @@ function makeWriter(name, fw){
 	}
 }
 
-function makeFromSchema(schema){	
+function makeStrings(schema){	
 	
-	var readers = {}
-	var writers = {}
 	var codes = {}
 	var names = {}
 
@@ -121,14 +121,35 @@ function makeFromSchema(schema){
 		sstr += '}\n'
 	}
 	
+	return {
+		readerString: rstr,
+		writerString: wstr,
+		skipString: sstr,
+		codes: codes,
+		names: names
+	}
+}
+
+function makeFromSchema(schema){
+	
+	var strs = makeStrings(schema)
+	var rstr = strs.readerString
+	var wstr = strs.writerString
+	var sstr = strs.skipString
+	var codes = strs.codes
+	var names = strs.names
+
+	var keys = Object.keys(schema._byCode)
+	
 	var tempFilePath = process.cwd()+'/'+'.temp_schema_file.'+Math.random()+'.tempschemafile.js'
 	var fullStr = wstr + '\n' + rstr + '\n' + sstr
+	//console.log('fullStr:\n' + fullStr)
 	fs.writeFileSync(tempFilePath, fullStr)
-	
+
 	var tempResult = require(tempFilePath)
-	
+
 	fs.unlinkSync(tempFilePath)
-	
+
 	var handle = {
 		readersByCode: {},
 		writersByCode: {},
@@ -197,6 +218,14 @@ exports.makeSingleReader = function(buf){
 	var r = rs.make()
 	r.put(buf)
 	return r.s
+}
+
+exports.makeReaderConfig = function(schema){
+	var strs = makeStrings(schema)
+	var rstr = strs.readerString
+	
+	//var tail = '\nfunction read(buf){var r = rs.make();r.put(buf);return r.s}\n'
+	return rstr// + tail
 }
 
 exports.makeReusableSingleReader = function(){

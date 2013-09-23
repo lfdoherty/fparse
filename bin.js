@@ -89,37 +89,6 @@ function writeUnsignedIntCompactly(buffer, offset, value){
 		return 5;
 	}	
 }
-/*
-function testCompactInts(){
-	var m = 1024*1024;
-	var k=0;
-	for(var i=k*m;i<2048*m;i+=m){
-		var b = new Buffer(5*m);
-		var off = 0;
-		for(var j=0;j<m;++j){
-			var n = j+i;
-			off += writeUnsignedIntCompactly(b, off, n);
-		}
-		off = 0;
-		for(var j=0;j<m;++j){
-			var n = j+i;
-			var res = readUnsignedIntCompactly(b, off);
-			if(n !== res[1]){
-				for(var i=0;i<5;++i){
-					console.log(b[off+i]);
-				}
-				console.log('error(' + res[0] + '), read(' + res[1] + ') does not match(' + n + ')');
-				throw 'error';
-			}
-			off += res[0];
-		}
-		console.log('passed ' + k + '/2048 (' + n + ') (' + off + '/' + (5*m) + ' : ' + (off/(5*m)) + ')');
-		++k;
-	}
-	console.log('compact int test passed');
-	_.errout('done');
-}
-testCompactInts();*/
 
 function writeLong(buffer, offset, value){
 
@@ -129,10 +98,6 @@ function writeLong(buffer, offset, value){
 	first = (sign*first) % 2147483648;
 	
 	first = sign*first;
-	
-	//require('sys').puts(value + ' k ' + (first + (second*2147483648)));
-		
-	//require('sys').puts('w ' + first + ',' + second);
 	
 	writeInt(buffer, offset, first);
 	writeInt(buffer, offset+4, second);
@@ -147,8 +112,6 @@ exports.writeInt = writeInt;
 exports.readLong = readLong;
 exports.writeLong = writeLong;
 
-var sys = require('sys');
-
 exports.readData = function(size, rs, cb, errorCb, endCb){
 
 	var bigBuffer = new Buffer(size);
@@ -157,16 +120,12 @@ exports.readData = function(size, rs, cb, errorCb, endCb){
 
 	rs.on('data', function(data){
 	
-		//sys.debug('got data: ' + data.length);
-	
 		if(data.length > bigBuffer.length - bigEndOffset){
-			//sys.debug('making new buffer');
 			if(bigEndOffset === bigOffset){
 				//there is no buffered data, just replace
 				var nb = new Buffer(Math.max(bigBuffer.length, data.length));
 				bigOffset = 0;
 				bigEndOffset = 0;				
-				//sys.debug('buffer was empty');
 
 				bigBuffer = nb;
 			}else{
@@ -178,7 +137,6 @@ exports.readData = function(size, rs, cb, errorCb, endCb){
 				bigOffset = 0;
 				
 				bigBuffer = nb;
-				//sys.debug('buffer was not empty');
 			}
 		}
 			
@@ -187,72 +145,10 @@ exports.readData = function(size, rs, cb, errorCb, endCb){
 	
 		var used = cb(bigBuffer, bigOffset, (bigEndOffset-bigOffset));
 		bigOffset += used;
-		
-		/*
-		if(data.length > bigBuffer.length - bigOffset){
-			var temp = new Buffer(data.length + bigOffset);
-			bigBuffer.copy(temp, 0, 0, bigOffset);
-			bigBuffer = temp;
-		}	
-		
-		data.copy(bigBuffer, bigOffset, 0);
-		bigOffset += data.length;
-		
-		try{
-			var used = cb(bigBuffer, 0, bigOffset);
-		
-			bigBuffer = bigBuffer.slice(used);
-			bigOffset -= used; 
-		}catch(e){
-			if(errorCb) errorCb(e);
-			throw e;//we cannot recover from this at the moment
-		}	*/	
 	});
 
 	if(endCb){
 		rs.on('end', endCb);
 	}
 };
-
-var _ = require('underscorem'),
-	fs = require('fs'),
-	path = require('path');
-	
-function mkdirs(dir, cb){
-	_.assertString(dir);
-	if(dir.indexOf('/') === -1){
-		path.exists(dir, function(exists){
-			if(exists){
-				cb();
-			}else{
-				fs.mkdir(dir, '0755', function(err){
-					if(err) throw err;
-					
-					cb();
-				});
-			}
-		});
-	}else{
-		var remDir = dir.substr(0, dir.lastIndexOf('/'));
-		
-		path.exists(dir, function(exists){
-			if(exists){
-				cb();
-			}else{
-				mkdirs(remDir, function(){				
-					fs.mkdir(dir, '0755', function(err){
-						if(err){
-							if(err.code !== 'EEXIST'){
-								throw err;
-							}
-						}
-						
-						cb();
-					});
-				});
-			}
-		});
-	}
-}
-exports.mkdirs = mkdirs;
 
